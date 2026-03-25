@@ -1,103 +1,124 @@
+# ============================
+# MÓDULO 1 · PRESENTACIÓN
+# ============================
+
 import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
 
-def process_chaside(df_raw: pd.DataFrame):
-    df = df_raw.copy()
+# ---------- estilos ----------
+PRIMARY = "#0F766E"
+ACCENT = "#14B8A6"
+MUTED = "#64748B"
 
-    columna_carrera = "¿A qué carrera desea ingresar?"
-    columna_nombre = "Ingrese su nombre completo"
+st.set_page_config(page_title="Presentación • CHASIDE", layout="centered")
 
-    if columna_carrera not in df.columns or columna_nombre not in df.columns:
-        raise ValueError(f"Columnas faltantes. Se requieren: '{columna_carrera}' y '{columna_nombre}'.")
+st.markdown(f"""
+<style>
+.block-container {{ padding-top: 1.5rem; padding-bottom: 2.5rem; }}
+.h1-title {{
+  font-size: 2.0rem; font-weight: 800; color: {PRIMARY}; margin-bottom: .25rem;
+}}
+.subtitle {{ color: {MUTED}; margin-bottom: 1.25rem; }}
+.section-title {{
+  font-weight: 700; font-size: 1.1rem; margin: 1.2rem 0 .2rem 0; color: {PRIMARY};
+}}
+.card {{
+  border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px 18px;
+  background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}}
+.puv {{
+  border-left: 6px solid {ACCENT}; padding: 12px 14px; background: #f8fffd;
+  border-radius: 10px; font-size: 1.02rem;
+}}
+</style>
+""", unsafe_allow_html=True)
 
-    df[columna_carrera] = df[columna_carrera].astype(str)
-    df[columna_nombre] = df[columna_nombre].astype(str)
 
-    # Procesamiento de ítems (columnas 5 a 103)
-    columnas_items = df.columns[5:103]
-    df_items = (
-        df[columnas_items]
-        .astype(str)
-        .apply(lambda c: c.str.strip().str.lower())
-        .replace({
-            "sí": 1, "si": 1, "s": 1, "1": 1, "true": 1, "verdadero": 1, "x": 1,
-            "no": 0, "n": 0, "0": 0, "false": 0, "falso": 0, "": 0, "nan": 0,
-        })
-        .apply(pd.to_numeric, errors="coerce")
-        .fillna(0)
-        .astype(int)
+def render_presentacion():
+    st.markdown(
+        '<div class="h1-title">Diagnóstico Vocacional – Escala CHASIDE</div>',
+        unsafe_allow_html=True
     )
-    df[columnas_items] = df_items
+    st.markdown(
+        '<div class="subtitle">Aplicación de apoyo a la elección de carrera universitaria</div>',
+        unsafe_allow_html=True
+    )
 
-    def col_item(i: int) -> str:
-        return columnas_items[i - 1]
+    # Autores e institución
+    st.markdown('<div class="section-title">Autores e institución</div>', unsafe_allow_html=True)
+    col1, col2 = st.columns([2, 1.2])
 
-    # Intereses y aptitudes por área
-    for a in AREAS:
-        df[f"INTERES_{a}"] = df[[col_item(i) for i in INTERESES_ITEMS[a]]].sum(axis=1)
-        df[f"APTITUD_{a}"] = df[[col_item(i) for i in APTITUDES_ITEMS[a]]].sum(axis=1)
+    with col1:
+        st.markdown("""
+<div class="card">
+<b>Autores</b><br>
+• Dra. Elena Elsa Bricio Barrios<br>
+• Dr. Santiago Arceo-Díaz<br>
+• Psic. Martha Cecilia Ramírez Guzmán
+</div>
+""", unsafe_allow_html=True)
 
-    # ============================================================
-    # NUEVO: Módulo de Desviación Intrapersona
-    # ============================================================
-    cols_intereses = [f"INTERES_{a}" for a in AREAS]
-    df["Desviacion_Intrapersona"] = df[cols_intereses].std(axis=1)
-    
-    # Marcamos como no aceptable si la desviación es muy baja (monotonía/azar)
-    # Un umbral de 1.0 es adecuado para detectar falta de discriminación en 10 ítems
-    df["Informacion_No_Aceptable"] = df["Desviacion_Intrapersona"] < 1.0
-    # ============================================================
+    with col2:
+        st.markdown("""
+<div class="card">
+<b>Institución</b><br>
+Tecnológico Nacional de México<br>
+Instituto Tecnológico de Colima
+</div>
+""", unsafe_allow_html=True)
 
-    # Ponderación y puntajes
-    peso_intereses, peso_aptitudes = 0.8, 0.2
-    for a in AREAS:
-        df[f"PUNTAJE_COMBINADO_{a}"] = (df[f"INTERES_{a}"] * peso_intereses + df[f"APTITUD_{a}"] * peso_aptitudes)
-        df[f"TOTAL_{a}"] = df[f"INTERES_{a}"] + df[f"APTITUD_{a}"]
+    # Objetivo
+    st.markdown('<div class="section-title">¿Qué pretende esta aplicación?</div>', unsafe_allow_html=True)
+    st.markdown("""
+<div class="card">
+Esta herramienta orienta a estudiantes de bachillerato en el <b>descubrimiento de sus intereses y aptitudes</b>,
+para apoyar una <b>elección de carrera informada y alineada</b> con sus fortalezas y aspiraciones.
+Integra resultados de la escala CHASIDE y los presenta de forma clara para estudiantes, familias y docentes.
+</div>
+""", unsafe_allow_html=True)
 
-    # Área fuerte y score máximo
-    df["Area_Fuerte_Ponderada"] = df.apply(lambda r: max(AREAS, key=lambda a: r[f"PUNTAJE_COMBINADO_{a}"]), axis=1)
-    df["Score"] = df[[f"PUNTAJE_COMBINADO_{a}" for a in AREAS]].max(axis=1)
+    # Madurez y personalidad
+    st.markdown('<div class="section-title">Madurez y personalidad en el bachillerato</div>', unsafe_allow_html=True)
+    st.markdown("""
+La <b>personalidad</b> se encuentra en pleno desarrollo durante el bachillerato. La <b>madurez</b> permite al joven
+empezar a definirse y reflexionar sobre su proyecto de vida, pero el proceso <b>aún está en construcción</b>.
+En esta etapa es clave contar con <b>herramientas de orientación</b> que acompañen la toma de decisiones académicas.
+""", unsafe_allow_html=True)
 
-    # Coherencia
-    def evaluar(area_chaside, carrera):
-        perfil = PERFIL_CARRERAS.get(str(carrera).strip())
-        if not perfil: return "Sin perfil definido"
-        if area_chaside in perfil.get("Fuerte", []): return "Coherente"
-        if area_chaside in perfil.get("Baja", []): return "Requiere Orientación"
-        return "Neutral"
+    # Intereses y aptitudes
+    st.markdown('<div class="section-title">Intereses y aptitudes: base de la formación académica</div>', unsafe_allow_html=True)
+    st.markdown("""
+Reconocer <b>lo que me interesa</b> y <b>para lo que tengo aptitud</b> ayuda a dirigir el esfuerzo,
+sostener la motivación y <b>reducir el riesgo de abandono o frustración</b>. Estos factores son
+determinantes para <b>persistir y desempeñarse</b> durante la vida universitaria.
+""", unsafe_allow_html=True)
 
-    df["Coincidencia_Ponderada"] = df.apply(lambda r: evaluar(r["Area_Fuerte_Ponderada"], r[columna_carrera]), axis=1)
+    # Escala CHASIDE
+    st.markdown('<div class="section-title">¿Qué es la escala CHASIDE?</div>', unsafe_allow_html=True)
+    st.markdown("""
+<b>CHASIDE</b> es una escala vocacional que integra <b>intereses</b> y <b>aptitudes</b> en siete áreas:
 
-    # Lógica de Carrera Mejor Perfilada (Integrando Desviación)
-    def carrera_mejor(r):
-        if r["Informacion_No_Aceptable"]:
-            return "Información no aceptable"
-        a = r["Area_Fuerte_Ponderada"]
-        c_actual = str(r[columna_carrera]).strip()
-        sugeridas = [c for c, p in PERFIL_CARRERAS.items() if a in p.get("Fuerte", [])]
-        return c_actual if c_actual in sugeridas else (", ".join(sugeridas) if sugeridas else "Sin sugerencia clara")
+- <b>C</b> – Área Administrativa  
+- <b>H</b> – Humanidades y Ciencias Sociales  
+- <b>A</b> – Área Artística  
+- <b>S</b> – Ciencias de la Salud  
+- <b>I</b> – Enseñanzas Técnicas  
+- <b>D</b> – Defensa y Seguridad  
+- <b>E</b> – Ciencias Experimentales  
 
-    # Diagnóstico y Semáforo
-    def diagnostico(r):
-        if r["Carrera_Mejor_Perfilada"] == "Información no aceptable": return "Información no aceptable"
-        if str(r[columna_carrera]).strip() == str(r["Carrera_Mejor_Perfilada"]).strip(): return "Perfil adecuado"
-        if r["Carrera_Mejor_Perfilada"] == "Sin sugerencia clara": return "Sin sugerencia clara"
-        return f"Sugerencia: {r['Carrera_Mejor_Perfilada']}"
+<b>Características generales:</b> aplicación rápida, reactivos tipo sí/no, interpretación sencilla y
+enfoque práctico para vincular resultados con opciones de carrera.
+""", unsafe_allow_html=True)
 
-    def semaforo(r):
-        diag = r["Diagnóstico Primario Vocacional"]
-        if diag == "Información no aceptable": return "No aceptable"
-        if diag == "Sin sugerencia clara": return "Sin sugerencia"
-        match = r["Coincidencia_Ponderada"]
-        return {"Coherente": "Verde", "Neutral": "Amarillo", "Requiere Orientación": "Rojo"}.get(match, "Sin sugerencia")
+    # PUV
+    st.markdown('<div class="section-title">Propuesta Única de Valor (PUV)</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+<div class="puv">
+<b>Orientación vocacional personalizada</b>, basada en evidencia (CHASIDE),
+con visualizaciones claras y reportes descargables para que los estudiantes identifiquen sus fortalezas
+y las instituciones cuenten con insumos objetivos para el acompañamiento académico.
+</div>
+""", unsafe_allow_html=True)
 
-    df["Carrera_Mejor_Perfilada"] = df.apply(carrera_mejor, axis=1)
-    df["Diagnóstico Primario Vocacional"] = df.apply(diagnostico, axis=1)
-    df["Semáforo Vocacional"] = df.apply(semaforo, axis=1)
 
-    df["Categoría_UI"] = df["Semáforo Vocacional"].map(CAT_INT_TO_UI).fillna("No tiene un área predominante")
-    df["Categoría_UI"] = pd.Categorical(df["Categoría_UI"], categories=CAT_UI_ORDER, ordered=True)
-
-    return df, columna_carrera, columna_nombre
+if __name__ == "__main__":
+    render_presentacion()
